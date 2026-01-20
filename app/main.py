@@ -14,5 +14,7 @@ app.include_router(auth_router)
 app.include_router(debug_router)
 
 
+
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host=os.getenv("HOST"), port=int(os.getenv("PORT")))

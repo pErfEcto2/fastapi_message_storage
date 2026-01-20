@@ -35,6 +35,13 @@ class DB(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def clear(self) -> None:
+        """
+        clears all data
+        """
+        pass
+
+    @abc.abstractmethod
     def get_user_by_name(self, name: str) -> User | None:
         """
         returns user by his name
