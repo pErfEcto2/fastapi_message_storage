@@ -2,6 +2,7 @@ from datetime import timedelta
 import os
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from .models import Token
@@ -24,7 +25,7 @@ class __signup_form(BaseModel):
     passwd: str
 
 @router.post("/signup")
-async def signup(form_data: __signup_form, db: DB = Depends(new_db)):
+async def signup(form_data: __signup_form, db: DB = Depends(new_db)) -> JSONResponse:
     if db.user_exists_by_name(form_data.name):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -34,9 +35,12 @@ async def signup(form_data: __signup_form, db: DB = Depends(new_db)):
 
     u = create_user_from_form(form_data.name, form_data.passwd)
     db.add_user(u)
+    return JSONResponse(content={"message": "success"},
+                        status_code=status.HTTP_201_CREATED,
+                        headers={"WWW-Authenticate": "Bearer"})
 
 @router.post("/login")
-async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: DB = Depends(new_db)) -> Token:
+async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: DB = Depends(new_db)) -> JSONResponse:
     u = auth_user(form_data.username, form_data.password, db)
     if u is None:
         raise HTTPException(
@@ -45,6 +49,10 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: 
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token = create_access_token(
-        data={"sub": u.name}, expires_delta=timedelta(minutes=__access_token_expires_m)
+        data={"sub": u.name},
+        expires_delta=timedelta(minutes=__access_token_expires_m)
     )
-    return Token(access_token=access_token, token_type="bearer")
+    token = Token(access_token=access_token, token_type="bearer")
+    return JSONResponse(content=token.model_dump(),
+                        status_code=status.HTTP_202_ACCEPTED,
+                        headers={"WWW-Authenticate": "Bearer"})
